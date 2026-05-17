@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCホログラムジェネレーター</title>
+    <title>Minecraft パーティクル ホログラム生成ツール (動画/GIF対応)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- GIF処理フォールバック用ライブラリ -->
@@ -114,7 +114,7 @@
 </div>
 
 <div class="max-w-5xl mx-auto">
-    <h1 class="text-3xl md:text-4xl text-center mb-2 mc-text-yellow tracking-wider">MCホログラムジェネレーター</h1>
+    <h1 class="text-3xl md:text-4xl text-center mb-2 mc-text-yellow tracking-wider">ホログラムジェネレーター 動画対応</h1>
     <p class="text-center text-sm mb-8 mc-text">画像・GIF・MP4動画をマイクラのデータパックに変換します (1.21.2+)</p>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -239,8 +239,9 @@
 
             video.addEventListener('loadeddata', () => {
                 const duration = video.duration;
-                if (duration > 60) {
-                    reject(new Error("動画が長すぎます（最大60秒まで）"));
+                // 最大120秒（2分）までに制限を緩和
+                if (duration > 120) {
+                    reject(new Error("動画が長すぎます（最大2分まで）"));
                     return;
                 }
                 
@@ -248,7 +249,8 @@
                 // 1Tick = 0.05秒
                 const interval = (ticksPerFrame * 50) / 1000; 
                 let currentTime = 0;
-                const maxFrames = 400; // メモリ保護のための最大フレーム数
+                // 最大フレーム数を850に増加
+                const maxFrames = 850; 
 
                 const canvas = document.createElement('canvas');
                 canvas.width = video.videoWidth;
