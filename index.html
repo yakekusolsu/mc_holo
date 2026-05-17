@@ -83,7 +83,7 @@
             display: flex; align-items: center; justify-content: center;
             overflow: hidden; cursor: pointer;
         }
-        #previewImage { max-width: 100%; max-height: 100%; display: none; image-rendering: pixelated; }
+        #previewImage { max-width: 100%; max-height: 100%; display: none; image-rendering: pixelated; object-fit: contain; }
         .mc-toast {
             position: fixed; top: 20px; right: -400px;
             background-color: #212121; border: 3px solid #555555;
@@ -96,7 +96,6 @@
             position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none;
             flex-direction: column; align-items: center; justify-content: center; z-index: 2000;
         }
-        /* コマンド表示用マイクラ風テキストエリア */
         .mc-textarea {
             width: 100%; height: 150px; background-color: #0d0d0d;
             border: 2px solid #555; color: #55ff55; font-family: monospace;
@@ -108,15 +107,15 @@
 <body class="p-4 md:p-8">
 
 <div class="loading-overlay" id="loadingOverlay">
-    <div class="text-2xl mc-text-yellow mb-4">変換中...</div>
+    <div class="text-2xl mc-text-yellow mb-4" id="loadingText">変換中...</div>
     <div class="w-64 h-4 bg-black border-2 border-white overflow-hidden">
         <div id="progressBar" class="h-full bg-green-500 w-0 transition-all duration-100"></div>
     </div>
 </div>
 
 <div class="max-w-5xl mx-auto">
-    <h1 class="text-3xl md:text-4xl text-center mb-2 mc-text-yellow tracking-wider">ホログラムジェネレーター</h1>
-    <p class="text-center text-sm mb-8 mc-text">画像・GIFをマイクラのデータパックに変換します (1.21.2+)</p>
+    <h1 class="text-3xl md:text-4xl text-center mb-2 mc-text-yellow tracking-wider">MCホログラムジェネレーター</h1>
+    <p class="text-center text-sm mb-8 mc-text">画像・GIF・MP4動画をマイクラのデータパックに変換します (1.21.2+)</p>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="mc-panel">
@@ -124,13 +123,13 @@
             <div id="previewContainer" onclick="document.getElementById('fileInput').click()">
                 <div id="uploadPlaceholder" class="text-center text-gray-400">
                     <p class="text-xl mb-2">クリックして選択</p>
-                    <p class="text-sm">PNG, JPG, GIF</p>
+                    <p class="text-sm">PNG, JPG, GIF, MP4, WebM</p>
                 </div>
                 <img id="previewImage" alt="Preview">
             </div>
-            <input type="file" id="fileInput" accept="image/png, image/jpeg, image/gif" class="hidden">
-            <div id="gifInfo" class="mt-4 mc-text-dark text-sm hidden">
-                フレーム数: <span id="frameCount" class="font-bold text-green-700 text-lg">0</span>
+            <input type="file" id="fileInput" accept="image/png, image/jpeg, image/gif, video/mp4, video/webm, video/quicktime" class="hidden">
+            <div id="animInfo" class="mt-4 mc-text-dark text-sm hidden">
+                抽出フレーム数: <span id="frameCount" class="font-bold text-green-700 text-lg">0</span>
             </div>
         </div>
 
@@ -151,10 +150,10 @@
                     <input type="range" id="sizeInput" class="mc-slider" min="0.5" max="8.0" step="0.1" value="2.5" oninput="document.getElementById('sizeVal').textContent=this.value">
                     <div class="text-right mc-text-dark text-sm mt-1">値: <span id="sizeVal" class="font-bold">2.5</span></div>
                 </div>
-                <div id="gifSpeedContainer" class="mb-4 opacity-50">
-                    <label class="block mb-2 font-bold mc-text-dark">再生速度 (Ticks/フレーム)</label>
+                <div id="animSpeedContainer" class="mb-4 opacity-50">
+                    <label class="block mb-2 font-bold mc-text-dark">再生速度 (Ticks/コマ)</label>
                     <input type="number" id="speedInput" class="mc-input" value="2" min="1" disabled>
-                    <p class="text-[10px] mt-1 text-gray-600">※1Tick=0.05秒</p>
+                    <p class="text-[10px] mt-1 text-gray-600 leading-tight">※1Tick=0.05秒<br>動画の場合、アップロード時のこの値に基づきコマ抽出されます。</p>
                 </div>
             </div>
             <div class="mb-4">
@@ -162,7 +161,6 @@
                 <input type="text" id="basePosInput" class="mc-input" value="~ ~2 ~">
             </div>
             
-            <!-- 復活した2大アクションボタン -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                 <button id="generateBtn" class="mc-btn w-full text-base" disabled>コマンドを生成する！</button>
                 <button id="downloadBtn" class="mc-btn w-full text-base" disabled style="background-color: #55aa55; color: white; text-shadow: 1px 1px 0 #113311;">データパックを保存</button>
@@ -170,7 +168,6 @@
         </div>
     </div>
 
-    <!-- コマンド出力プレビューパネル -->
     <div id="commandOutputPanel" class="mc-panel" style="display: none;">
         <div class="flex justify-between items-center mb-2">
             <h3 class="font-bold mc-text-dark">生成されたコマンドプレビュー</h3>
@@ -184,9 +181,9 @@
         <h2 class="text-xl font-bold mb-4 mc-text-dark border-b-2 border-gray-400 pb-2">3. 使い方</h2>
         <div class="text-sm mc-text-dark leading-relaxed">
             <ol class="list-decimal list-inside space-y-2">
-                <li>ファイルをアップロードしてホログラムの設定を行います。</li>
+                <li>ファイルをアップロードしてホログラムの設定を行います。(MP4/GIF可)</li>
                 <li>手軽にコマンドブロックなどで試したい場合は「<strong>コマンドを生成する！</strong>」をクリック。</li>
-                <li>アニメーション（GIF）や大規模な表示は「<strong>データパックを保存</strong>」からZIPをダウンロードします。</li>
+                <li>アニメーション（GIF/動画）や大規模な表示は「<strong>データパックを保存</strong>」からZIPをダウンロードします。</li>
                 <li>DLしたZIPをワールドの <code class="bg-gray-300 px-1">datapacks</code> フォルダに入れ、マイクラ内で <code class="bg-gray-300 px-1">/reload</code> を実行。</li>
                 <li><strong>再生開始:</strong> <code class="bg-blue-200 px-1">/function hologram:start</code></li>
                 <li><strong>再生停止:</strong> <code class="bg-red-200 px-1">/function hologram:stop</code></li>
@@ -212,6 +209,7 @@
     const generateBtn = document.getElementById('generateBtn');
     const downloadBtn = document.getElementById('downloadBtn');
     const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingText = document.getElementById('loadingText');
     const progressBar = document.getElementById('progressBar');
     
     const widthInput = document.getElementById('widthInput');
@@ -219,7 +217,7 @@
     const sizeInput = document.getElementById('sizeInput');
     const speedInput = document.getElementById('speedInput');
     const basePosInput = document.getElementById('basePosInput');
-    const gifInfo = document.getElementById('gifInfo');
+    const animInfo = document.getElementById('animInfo');
     const frameCountEl = document.getElementById('frameCount');
     
     const commandOutputPanel = document.getElementById('commandOutputPanel');
@@ -228,114 +226,211 @@
     const copyBtn = document.getElementById('copyBtn');
 
     let currentFile = null;
-    let isGif = false;
-    let gifFrames = [];
+    let isAnim = false;
+    let animFrames = [];
+
+    // 動画ファイルからフレームを抽出する関数
+    async function extractVideoFrames(file, ticksPerFrame, onProgress) {
+        return new Promise((resolve, reject) => {
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(file);
+            video.muted = true;
+            video.playsInline = true;
+
+            video.addEventListener('loadeddata', () => {
+                const duration = video.duration;
+                if (duration > 60) {
+                    reject(new Error("動画が長すぎます（最大60秒まで）"));
+                    return;
+                }
+                
+                const frames = [];
+                // 1Tick = 0.05秒
+                const interval = (ticksPerFrame * 50) / 1000; 
+                let currentTime = 0;
+                const maxFrames = 400; // メモリ保護のための最大フレーム数
+
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+                video.addEventListener('seeked', () => {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    frames.push({
+                        width: canvas.width,
+                        height: canvas.height,
+                        data: ctx.getImageData(0, 0, canvas.width, canvas.height).data
+                    });
+
+                    if (onProgress) {
+                        onProgress(Math.min(currentTime / duration, 1));
+                    }
+
+                    currentTime += interval;
+                    if (currentTime <= duration && frames.length < maxFrames) {
+                        video.currentTime = currentTime;
+                    } else {
+                        if (frames.length >= maxFrames) {
+                            console.warn(`最大フレーム数(${maxFrames})に達したため抽出を終了しました`);
+                        }
+                        resolve(frames);
+                    }
+                });
+                
+                video.addEventListener('error', (e) => reject(e));
+                video.currentTime = 0; // 抽出開始
+            });
+            
+            video.load();
+        });
+    }
 
     fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         currentFile = file;
-        isGif = file.type === 'image/gif';
+        
+        const isGif = file.type === 'image/gif';
+        const isVideo = file.type.startsWith('video/');
+        isAnim = isGif || isVideo;
         
         const url = URL.createObjectURL(file);
-        previewImage.src = url;
-        previewImage.style.display = 'block';
+        
         uploadPlaceholder.style.display = 'none';
         generateBtn.disabled = false;
         downloadBtn.disabled = false;
         commandOutputPanel.style.display = 'none';
 
-        if (isGif) {
+        if (isAnim) {
             speedInput.disabled = false;
-            document.getElementById('gifSpeedContainer').style.opacity = "1";
+            document.getElementById('animSpeedContainer').style.opacity = "1";
             
-            try {
-                const arrayBuffer = await file.arrayBuffer();
+            if (isGif) {
+                // GIF処理
+                previewImage.src = url;
+                previewImage.style.display = 'block';
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
 
-                // 1. 最新の ImageDecoder API (WebCodecs) を最優先で使用 (高速かつ正確)
-                if ('ImageDecoder' in window) {
-                    // Fileオブジェクトから直ではなく、変換した ArrayBuffer を ImageDecoder に渡す
-                    const decoder = new window.ImageDecoder({ data: arrayBuffer, type: 'image/gif' });
-                    await decoder.tracks.ready;
-                    const frameCount = decoder.tracks.selectedTrack.frameCount;
-                    
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-                    
-                    gifFrames = [];
-                    for (let i = 0; i < frameCount; i++) {
-                        const result = await decoder.decode({ frameIndex: i });
-                        const videoFrame = result.image;
+                    if ('ImageDecoder' in window) {
+                        const decoder = new window.ImageDecoder({ data: arrayBuffer, type: 'image/gif' });
+                        await decoder.tracks.ready;
+                        const frameCount = decoder.tracks.selectedTrack.frameCount;
                         
-                        if (i === 0) {
-                            canvas.width = videoFrame.displayWidth;
-                            canvas.height = videoFrame.displayHeight;
-                        }
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d', { willReadFrequently: true });
                         
-                        // ImageDecoderは自動でフレーム重ね合わせ処理を行います
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        ctx.drawImage(videoFrame, 0, 0);
-                        
-                        gifFrames.push({
-                            width: canvas.width,
-                            height: canvas.height,
-                            data: ctx.getImageData(0, 0, canvas.width, canvas.height).data
-                        });
-                        videoFrame.close();
-                    }
-                    frameCountEl.textContent = gifFrames.length;
-                    gifInfo.classList.remove('hidden');
-                } else {
-                    // 2. ブラウザ非対応時の強力な gifuct-js フォールバック
-                    const parsedGif = window.gifuct.parseGIF(arrayBuffer);
-                    const rawFrames = window.gifuct.decompressFrames(parsedGif, true);
-                    
-                    gifFrames = [];
-                    const canvas = document.createElement('canvas');
-                    canvas.width = parsedGif.lsd.width;
-                    canvas.height = parsedGif.lsd.height;
-                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-                    
-                    for (let i = 0; i < rawFrames.length; i++) {
-                        const frame = rawFrames[i];
-                        
-                        const patchData = new ImageData(
-                            new Uint8ClampedArray(frame.patch),
-                            frame.dims.width,
-                            frame.dims.height
-                        );
-                        
-                        if (frame.disposalType === 2) {
+                        animFrames = [];
+                        for (let i = 0; i < frameCount; i++) {
+                            const result = await decoder.decode({ frameIndex: i });
+                            const videoFrame = result.image;
+                            
+                            if (i === 0) {
+                                canvas.width = videoFrame.displayWidth;
+                                canvas.height = videoFrame.displayHeight;
+                            }
+                            
                             ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(videoFrame, 0, 0);
+                            
+                            animFrames.push({
+                                width: canvas.width,
+                                height: canvas.height,
+                                data: ctx.getImageData(0, 0, canvas.width, canvas.height).data
+                            });
+                            videoFrame.close();
                         }
+                        frameCountEl.textContent = animFrames.length;
+                        animInfo.classList.remove('hidden');
+                    } else {
+                        const parsedGif = window.gifuct.parseGIF(arrayBuffer);
+                        const rawFrames = window.gifuct.decompressFrames(parsedGif, true);
                         
-                        ctx.putImageData(patchData, frame.dims.left, frame.dims.top);
+                        animFrames = [];
+                        const canvas = document.createElement('canvas');
+                        canvas.width = parsedGif.lsd.width;
+                        canvas.height = parsedGif.lsd.height;
+                        const ctx = canvas.getContext('2d', { willReadFrequently: true });
                         
-                        gifFrames.push({
-                            width: canvas.width,
-                            height: canvas.height,
-                            data: ctx.getImageData(0, 0, canvas.width, canvas.height).data
-                        });
+                        for (let i = 0; i < rawFrames.length; i++) {
+                            const frame = rawFrames[i];
+                            const patchData = new ImageData(
+                                new Uint8ClampedArray(frame.patch),
+                                frame.dims.width,
+                                frame.dims.height
+                            );
+                            
+                            if (frame.disposalType === 2) {
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            }
+                            
+                            ctx.putImageData(patchData, frame.dims.left, frame.dims.top);
+                            
+                            animFrames.push({
+                                width: canvas.width,
+                                height: canvas.height,
+                                data: ctx.getImageData(0, 0, canvas.width, canvas.height).data
+                            });
+                        }
+                        frameCountEl.textContent = animFrames.length;
+                        animInfo.classList.remove('hidden');
                     }
-                    
-                    frameCountEl.textContent = gifFrames.length;
-                    gifInfo.classList.remove('hidden');
+                } catch (err) {
+                    console.error("GIF処理エラー:", err);
+                    alert("GIFの解析に失敗しました。静止画として処理を継続します。");
+                    isAnim = false;
+                    animInfo.classList.add('hidden');
                 }
-            } catch (err) {
-                console.error("GIF処理エラー:", err);
-                alert("GIFの解析に失敗しました。静止画として処理を継続します。");
-                isGif = false;
-                gifInfo.classList.add('hidden');
+            } else if (isVideo) {
+                // 動画処理
+                loadingOverlay.style.display = 'flex';
+                loadingText.textContent = "動画からフレームを抽出中...";
+                progressBar.style.width = '0%';
+                
+                try {
+                    const ticksPerFrame = parseInt(speedInput.value) || 2;
+                    animFrames = await extractVideoFrames(file, ticksPerFrame, (progress) => {
+                        progressBar.style.width = `${progress * 100}%`;
+                    });
+                    
+                    if (animFrames.length > 0) {
+                        // 最初のフレームをプレビュー用に描画
+                        const firstFrame = animFrames[0];
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = firstFrame.width;
+                        tempCanvas.height = firstFrame.height;
+                        const tCtx = tempCanvas.getContext('2d');
+                        const imgData = new ImageData(new Uint8ClampedArray(firstFrame.data), firstFrame.width, firstFrame.height);
+                        tCtx.putImageData(imgData, 0, 0);
+                        
+                        previewImage.src = tempCanvas.toDataURL();
+                        previewImage.style.display = 'block';
+                        
+                        frameCountEl.textContent = animFrames.length;
+                        animInfo.classList.remove('hidden');
+                    }
+                } catch (err) {
+                    console.error("動画処理エラー:", err);
+                    alert("動画の解析に失敗しました: " + err.message);
+                    isAnim = false;
+                    animInfo.classList.add('hidden');
+                    uploadPlaceholder.style.display = 'block';
+                } finally {
+                    loadingOverlay.style.display = 'none';
+                }
             }
         } else {
+            // 静止画
+            previewImage.src = url;
+            previewImage.style.display = 'block';
             speedInput.disabled = true;
-            document.getElementById('gifSpeedContainer').style.opacity = "0.5";
-            gifInfo.classList.add('hidden');
-            gifFrames = [];
+            document.getElementById('animSpeedContainer').style.opacity = "0.5";
+            animInfo.classList.add('hidden');
+            animFrames = [];
         }
     });
 
-    // 「コマンドを生成する！」処理 (テキストエリア表示)
     generateBtn.addEventListener('click', async () => {
         if (!currentFile) return;
         
@@ -346,12 +441,10 @@
             const pScale = parseFloat(sizeInput.value);
             const pos = basePosInput.value.split(' ');
 
-            if (isGif && gifFrames.length > 0) {
-                // GIFの場合は最初のフレーム(1f)を生成
-                commands = await processFrame(gifFrames[0], targetWidth, density, pScale, pos);
-                showToast("生成完了", "GIFの最初のフレーム(1f)を生成しました！");
+            if (isAnim && animFrames.length > 0) {
+                commands = await processFrame(animFrames[0], targetWidth, density, pScale, pos);
+                showToast("生成完了", "アニメーションの最初のフレーム(1f)を生成しました！");
             } else {
-                // 静止画の場合
                 const img = await loadImage(URL.createObjectURL(currentFile));
                 commands = await processImage(img, targetWidth, density, pScale, pos);
                 showToast("生成完了", "ホログラム用コマンドを生成しました！");
@@ -368,9 +461,9 @@
         }
     });
 
-    // 「データパックを保存」ダウンロード処理
     downloadBtn.addEventListener('click', async () => {
         loadingOverlay.style.display = 'flex';
+        loadingText.textContent = "データパック作成中...";
         progressBar.style.width = '0%';
         
         try {
@@ -382,63 +475,49 @@
             const pos = basePosInput.value.split(' ');
             const ticksPerFrame = parseInt(speedInput.value) || 2;
 
-            // pack.mcmeta
             zip.file("pack.mcmeta", JSON.stringify({
                 pack: { pack_format: 61, description: "Hologram Generator Data Pack" }
             }));
 
             const funcFolder = zip.folder("data").folder(appId).folder("function");
 
-            if (isGif && gifFrames.length > 0) {
-                // 1. 各フレームファイルを「1f.mcfunction」「2f.mcfunction」...として出力
+            if (isAnim && animFrames.length > 0) {
                 const frameFolder = funcFolder.folder("frames");
-                for (let i = 0; i < gifFrames.length; i++) {
-                    progressBar.style.width = `${(i / gifFrames.length) * 100}%`;
-                    const commands = await processFrame(gifFrames[i], targetWidth, density, pScale, pos);
-                    
-                    // 1f, 2f, 3f という命名規則に変更
+                for (let i = 0; i < animFrames.length; i++) {
+                    progressBar.style.width = `${(i / animFrames.length) * 100}%`;
+                    const commands = await processFrame(animFrames[i], targetWidth, density, pScale, pos);
                     frameFolder.file(`${i + 1}f.mcfunction`, commands.join('\n'));
                 }
 
-                // 2. 全フレームのスケジュールを start.mcfunction にまとめる
                 let startCmdLines = [];
-                
-                // 1枚目のフレームは即時実行
                 startCmdLines.push(`function ${appId}:frames/1f`);
-                
-                // 2枚目以降は指定のTick間隔で遅延スケジュール
-                for (let i = 1; i < gifFrames.length; i++) {
+                for (let i = 1; i < animFrames.length; i++) {
                     const scheduledTick = i * ticksPerFrame;
                     startCmdLines.push(`schedule function ${appId}:frames/${i + 1}f ${scheduledTick}t`);
                 }
-
-                // ループ処理：全フレームが終了した直後に、再び start.mcfunction 自体を呼び出す
-                const totalLoopTicks = gifFrames.length * ticksPerFrame;
+                const totalLoopTicks = animFrames.length * ticksPerFrame;
                 startCmdLines.push(`schedule function ${appId}:start ${totalLoopTicks}t`);
-                
                 funcFolder.file("start.mcfunction", startCmdLines.join('\n'));
 
-                // 3. 停止用の stop.mcfunction (すべてのスケジュール予定を消去)
                 let stopCmdLines = [];
                 stopCmdLines.push(`schedule clear ${appId}:start`);
-                for (let i = 0; i < gifFrames.length; i++) {
+                for (let i = 0; i < animFrames.length; i++) {
                     stopCmdLines.push(`schedule clear ${appId}:frames/${i + 1}f`);
                 }
                 funcFolder.file("stop.mcfunction", stopCmdLines.join('\n'));
 
             } else {
-                // 静止画処理の場合
                 const img = await loadImage(URL.createObjectURL(currentFile));
                 const commands = await processImage(img, targetWidth, density, pScale, pos);
                 funcFolder.file("draw.mcfunction", commands.join('\n'));
                 funcFolder.file("start.mcfunction", `function ${appId}:draw`);
-                funcFolder.file("stop.mcfunction", `fill ~-5 ~-5 ~-5 ~5 ~5 ~5 air replace light`); // 簡易停止
+                funcFolder.file("stop.mcfunction", `fill ~-5 ~-5 ~-5 ~5 ~5 ~5 air replace light`); 
             }
 
             const content = await zip.generateAsync({type: "blob"});
             const a = document.createElement('a');
             a.href = URL.createObjectURL(content);
-            a.download = isGif ? "hologram_gif_datapack.zip" : "hologram_image_datapack.zip";
+            a.download = isAnim ? "hologram_anim_datapack.zip" : "hologram_image_datapack.zip";
             a.click();
             showToast("成功", "データパックを保存しました！");
         } catch (err) {
@@ -537,7 +616,6 @@
         setTimeout(() => toastEl.classList.remove('show'), 4000);
     }
 
-    // コピーボタン処理
     copyBtn.addEventListener('click', () => {
         commandTextArea.select();
         document.execCommand('copy');
