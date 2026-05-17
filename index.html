@@ -3,521 +3,546 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ホログラムジェネレーター</title>
-    <!-- Tailwind CSS for layout -->
+    <title>MCホログラムジェネレーター</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- JSZip for datapack -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <!-- Google Fonts: DotGothic16 for Minecraft style text -->
+    <!-- GIF処理フォールバック用ライブラリ -->
+    <script src="https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/dist/gifuct-js.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     
     <style>
         body {
-            /* マイクラのDirt(土)ブロック風の背景パターン */
             background-color: #593D29;
             background-image: 
                 linear-gradient(45deg, #4A3322 25%, transparent 25%, transparent 75%, #4A3322 75%, #4A3322),
                 linear-gradient(45deg, #4A3322 25%, transparent 25%, transparent 75%, #4A3322 75%, #4A3322);
             background-size: 32px 32px;
             background-position: 0 0, 16px 16px;
-            
             font-family: 'DotGothic16', sans-serif;
             color: #ffffff;
         }
-
-        /* マイクラのテキスト影 */
-        .mc-text {
-            color: #ffffff;
-            text-shadow: 2px 2px 0 #3f3f3f;
-        }
-        .mc-text-yellow {
-            color: #ffff55;
-            text-shadow: 2px 2px 0 #3f3f00;
-        }
-        .mc-text-dark {
-            color: #333333;
-        }
-
-        /* マイクラのGUIパネル (インベントリ風) */
+        .mc-text { color: #ffffff; text-shadow: 2px 2px 0 #3f3f3f; }
+        .mc-text-yellow { color: #ffff55; text-shadow: 2px 2px 0 #3f3f00; }
+        .mc-text-dark { color: #333333; }
         .mc-panel {
             background-color: #c6c6c6;
-            border: 3px solid #000; /* 外枠 */
-            box-shadow: inset 3px 3px 0 #ffffff, inset -3px -3px 0 #555555; /* 内側のハイライトとシャドウ */
+            border: 3px solid #000;
+            box-shadow: inset 3px 3px 0 #ffffff, inset -3px -3px 0 #555555;
             padding: 20px;
             margin-bottom: 24px;
-            color: #222; /* パネル内の基本テキスト色は黒系 */
+            color: #222;
         }
-
-        /* マイクラ風のボタン */
         .mc-btn {
             display: inline-block;
             background-color: #c6c6c6;
             border: 3px solid;
-            border-top-color: #ffffff;
-            border-left-color: #ffffff;
-            border-right-color: #555555;
-            border-bottom-color: #555555;
+            border-top-color: #ffffff; border-left-color: #ffffff;
+            border-right-color: #555555; border-bottom-color: #555555;
             color: #111;
             font-family: 'DotGothic16', sans-serif;
-            text-shadow: 1px 1px 0 #fff; /* 彫り込み風の影 */
+            text-shadow: 1px 1px 0 #fff;
             padding: 10px 20px;
             cursor: pointer;
-            transition: none; /* マイクラにアニメーションはない */
+            text-align: center;
         }
-        .mc-btn:hover:not(:disabled) {
-            background-color: #8da3d4; /* ホバー時は青っぽく */
-        }
+        .mc-btn:hover:not(:disabled) { background-color: #8da3d4; }
         .mc-btn:active:not(:disabled) {
-            border-top-color: #555555;
-            border-left-color: #555555;
-            border-right-color: #ffffff;
-            border-bottom-color: #ffffff;
-            padding-top: 11px; /* 押下時の沈み込み */
-            padding-bottom: 9px;
+            border-top-color: #555555; border-left-color: #555555;
+            border-right-color: #ffffff; border-bottom-color: #ffffff;
+            padding-top: 11px; padding-bottom: 9px;
         }
-        .mc-btn:disabled {
-            color: #888;
-            cursor: not-allowed;
-            text-shadow: 1px 1px 0 #e0e0e0;
-        }
-
-        /* 入力フィールド */
+        .mc-btn:disabled { color: #888; cursor: not-allowed; text-shadow: none; border-color: #555; }
         .mc-input {
             width: 100%;
             background-color: #000000;
             border: 2px solid;
-            border-top-color: #555555;
-            border-left-color: #555555;
-            border-right-color: #ffffff;
-            border-bottom-color: #ffffff;
+            border-top-color: #555555; border-left-color: #555555;
+            border-right-color: #ffffff; border-bottom-color: #ffffff;
             color: #ffffff;
             padding: 10px;
             font-family: 'DotGothic16', sans-serif;
         }
-        .mc-input:focus {
-            outline: 2px solid #ffffff;
-            outline-offset: -2px;
-        }
-
-        /* スライダー (range) */
-        .mc-slider {
-            -webkit-appearance: none;
-            width: 100%;
-            background: transparent;
-        }
+        .mc-slider { -webkit-appearance: none; width: 100%; background: transparent; }
         .mc-slider::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 10px;
-            background: #000;
-            border: 2px solid;
-            border-top-color: #555555;
-            border-left-color: #555555;
-            border-bottom-color: #ffffff;
-            border-right-color: #ffffff;
+            width: 100%; height: 10px; background: #000;
+            border: 2px solid; border-top-color: #555555; border-left-color: #555555;
+            border-bottom-color: #ffffff; border-right-color: #ffffff;
         }
         .mc-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 24px;
-            width: 16px;
-            background: #c6c6c6;
-            border: 2px solid;
-            border-top-color: #ffffff;
-            border-left-color: #ffffff;
-            border-bottom-color: #555555;
-            border-right-color: #555555;
-            margin-top: -9px;
-            cursor: pointer;
+            -webkit-appearance: none; height: 24px; width: 16px; background: #c6c6c6;
+            border: 2px solid; border-top-color: #ffffff; border-left-color: #ffffff;
+            border-bottom-color: #555555; border-right-color: #555555;
+            margin-top: -9px; cursor: pointer;
         }
-
-        /* プレビューエリア */
         #previewContainer {
-            width: 100%;
-            height: 250px;
-            background-color: #000000;
-            border: 3px solid;
-            border-top-color: #555555;
-            border-left-color: #555555;
-            border-right-color: #ffffff;
-            border-bottom-color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-            cursor: pointer;
+            width: 100%; height: 250px; background-color: #000;
+            border: 3px solid; border-top-color: #555555; border-left-color: #555555;
+            border-right-color: #ffffff; border-bottom-color: #ffffff;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; cursor: pointer;
         }
-        #previewImage {
-            max-width: 100%;
-            max-height: 100%;
-            display: none;
-            image-rendering: pixelated; /* ドット絵をくっきり表示 */
-        }
-        #uploadPlaceholder {
-            text-align: center;
-            color: #aaaaaa;
-        }
-
-        /* 出力エリア (コマンド) */
-        #outputArea {
-            width: 100%;
-            height: 200px;
-            background-color: #000000;
-            color: #55ff55; /* マイクラの緑テキスト */
-            border: 3px solid;
-            border-top-color: #555555;
-            border-left-color: #555555;
-            border-right-color: #ffffff;
-            border-bottom-color: #ffffff;
-            padding: 12px;
-            font-family: monospace; /* コマンドなので等幅 */
-            font-size: 14px;
-            resize: vertical;
-            white-space: pre;
-            overflow-x: auto;
-            display: none;
-        }
-
-        /* 進捗(アチーブメント)風のトースト通知 */
+        #previewImage { max-width: 100%; max-height: 100%; display: none; image-rendering: pixelated; }
         .mc-toast {
-            position: fixed;
-            top: 20px;
-            right: -400px; /* 初期状態は画面外 */
-            background-color: #212121;
-            border: 3px solid #555555;
-            border-top-color: #777777;
-            border-left-color: #777777;
-            border-right-color: #111111;
-            border-bottom-color: #111111;
-            color: white;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            transition: right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 1000;
-            width: 320px;
+            position: fixed; top: 20px; right: -400px;
+            background-color: #212121; border: 3px solid #555555;
+            color: white; padding: 16px; display: flex; align-items: center; gap: 16px;
+            transition: right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1000; width: 320px;
         }
-        .mc-toast.show {
-            right: 20px;
+        .mc-toast.show { right: 20px; }
+        .toast-icon { width: 32px; height: 32px; background-color: #55ff55; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000; }
+        .loading-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none;
+            flex-direction: column; align-items: center; justify-content: center; z-index: 2000;
         }
-        .toast-icon {
-            width: 32px;
-            height: 32px;
-            background-color: #55ff55;
-            border: 2px solid #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: #000;
-        }
-
-        /* カスタムスクロールバー */
-        ::-webkit-scrollbar { width: 12px; height: 12px; }
-        ::-webkit-scrollbar-track { background: #000; border: 2px solid #555; }
-        ::-webkit-scrollbar-thumb { 
-            background: #c6c6c6; 
-            border: 2px solid;
-            border-top-color: #fff; border-left-color: #fff;
-            border-right-color: #555; border-bottom-color: #555;
+        /* コマンド表示用マイクラ風テキストエリア */
+        .mc-textarea {
+            width: 100%; height: 150px; background-color: #0d0d0d;
+            border: 2px solid #555; color: #55ff55; font-family: monospace;
+            font-size: 11px; padding: 10px; overflow-y: scroll; display: none;
+            word-break: break-all; margin-top: 12px;
         }
     </style>
 </head>
-
 <body class="p-4 md:p-8">
 
-<div class="max-w-4xl mx-auto">
-    <h1 class="text-3xl md:text-4xl text-center mb-2 mc-text-yellow tracking-wider">ホログラムジェネレーター</h1>
-    <p class="text-center text-sm mb-8 mc-text">画像をマイクラの `/particle` コマンドに変換します (対応: 1.21.2+)</p>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        <!-- 左カラム：画像アップロード -->
-        <div class="mc-panel">
-            <h2 class="text-xl font-bold mb-4 mc-text-dark border-b-2 border-gray-400 pb-2">1. 画像をアップロード</h2>
-            
-            <div id="previewContainer" onclick="document.getElementById('imageInput').click()">
-                <div id="uploadPlaceholder">
-                    <p class="text-xl mb-2">クリックして選択</p>
-                    <p class="text-sm text-gray-400">PNG, JPG (背景透過推奨)</p>
-                </div>
-                <img id="previewImage" alt="Preview">
-            </div>
-            <input type="file" id="imageInput" accept="image/png, image/jpeg" class="hidden">
-            
-            <canvas id="canvas" class="hidden"></canvas>
-        </div>
-
-        <!-- 右カラム：設定 -->
-        <div class="mc-panel">
-            <h2 class="text-xl font-bold mb-4 mc-text-dark border-b-2 border-gray-400 pb-2">2. ホログラム設定</h2>
-            
-            <div class="mb-5">
-                <label class="block mb-2 font-bold mc-text-dark" for="widthInput">表示幅 (ブロック数)</label>
-                <div class="flex items-center gap-3">
-                    <input type="number" id="widthInput" class="mc-input w-24" value="5" min="1" max="50">
-                    <span class="mc-text-dark">ブロック</span>
-                </div>
-            </div>
-
-            <div class="mb-5">
-                <label class="block mb-2 font-bold mc-text-dark" for="densityInput">密度 (パーティクル/ブロック)</label>
-                <div class="flex items-center gap-4">
-                    <input type="range" id="densityInput" class="mc-slider flex-1" min="1" max="20" value="8" oninput="document.getElementById('densityValue').textContent = this.value">
-                    <span id="densityValue" class="w-8 text-center font-bold text-xl mc-text-dark">8</span>
-                </div>
-                <p class="text-xs text-gray-600 mt-2 leading-tight">※高くすると細かくなりますが、マイクラが重くなる場合があります</p>
-            </div>
-
-            <div class="mb-5">
-                <label class="block mb-2 font-bold mc-text-dark" for="sizeInput">パーティクルの大きさ (隙間埋め)</label>
-                <div class="flex items-center gap-4">
-                    <input type="range" id="sizeInput" class="mc-slider flex-1" min="0.5" max="10.0" step="0.1" value="2.5" oninput="document.getElementById('sizeValue').textContent = parseFloat(this.value).toFixed(1)">
-                    <span id="sizeValue" class="w-8 text-center font-bold text-xl mc-text-dark">2.5</span>
-                </div>
-                <p class="text-xs text-gray-600 mt-2 leading-tight">※値を大きくすると点が繋がり、面のように見えます</p>
-            </div>
-
-            <div class="mb-5">
-                <label class="block mb-2 font-bold mc-text-dark" for="basePosInput">基準座標</label>
-                <input type="text" id="basePosInput" class="mc-input" value="~ ~2 ~" placeholder="X Y Z">
-                <p class="text-xs text-gray-600 mt-2 leading-tight">※この座標を中心に画像が生成されます</p>
-            </div>
-            
-            <div class="mt-6 flex flex-col gap-3">
-                <button id="generateBtn" class="mc-btn w-full text-lg" disabled>コマンドを生成する</button>
-                <button id="downloadDatapackBtn" class="mc-btn w-full text-lg" style="display: none; color: #006600;">データパック出力 (1.21.8)</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 結果エリア -->
-    <div class="mc-panel">
-        <div class="flex justify-between items-end mb-4 border-b-2 border-gray-400 pb-2">
-            <h2 class="text-xl font-bold mc-text-dark">3. 生成結果</h2>
-            <button id="copyBtn" class="mc-btn text-sm py-1 px-3" style="display: none;">
-                コピー
-            </button>
-        </div>
-        
-        <p id="statsText" class="text-sm text-gray-600 mb-4 leading-relaxed">画像を選択し、設定を調整して「コマンドを生成する」を押してください。</p>
-        
-        <textarea id="outputArea" readonly></textarea>
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="text-2xl mc-text-yellow mb-4">変換中...</div>
+    <div class="w-64 h-4 bg-black border-2 border-white overflow-hidden">
+        <div id="progressBar" class="h-full bg-green-500 w-0 transition-all duration-100"></div>
     </div>
 </div>
 
-<!-- 進捗(アチーブメント)風の通知 -->
+<div class="max-w-5xl mx-auto">
+    <h1 class="text-3xl md:text-4xl text-center mb-2 mc-text-yellow tracking-wider">ホログラムジェネレーター</h1>
+    <p class="text-center text-sm mb-8 mc-text">画像・GIFをマイクラのデータパックに変換します (1.21.2+)</p>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="mc-panel">
+            <h2 class="text-xl font-bold mb-4 mc-text-dark border-b-2 border-gray-400 pb-2">1. ファイルをアップロード</h2>
+            <div id="previewContainer" onclick="document.getElementById('fileInput').click()">
+                <div id="uploadPlaceholder" class="text-center text-gray-400">
+                    <p class="text-xl mb-2">クリックして選択</p>
+                    <p class="text-sm">PNG, JPG, GIF</p>
+                </div>
+                <img id="previewImage" alt="Preview">
+            </div>
+            <input type="file" id="fileInput" accept="image/png, image/jpeg, image/gif" class="hidden">
+            <div id="gifInfo" class="mt-4 mc-text-dark text-sm hidden">
+                フレーム数: <span id="frameCount" class="font-bold text-green-700 text-lg">0</span>
+            </div>
+        </div>
+
+        <div class="mc-panel">
+            <h2 class="text-xl font-bold mb-4 mc-text-dark border-b-2 border-gray-400 pb-2">2. 設定</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="mb-4">
+                    <label class="block mb-2 font-bold mc-text-dark">表示幅 (ブロック)</label>
+                    <input type="number" id="widthInput" class="mc-input" value="5" min="1">
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-2 font-bold mc-text-dark">密度</label>
+                    <input type="range" id="densityInput" class="mc-slider" min="1" max="20" value="8" oninput="document.getElementById('densityVal').textContent=this.value">
+                    <div class="text-right mc-text-dark text-sm mt-1">値: <span id="densityVal" class="font-bold">8</span></div>
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-2 font-bold mc-text-dark">ドットの大きさ</label>
+                    <input type="range" id="sizeInput" class="mc-slider" min="0.5" max="8.0" step="0.1" value="2.5" oninput="document.getElementById('sizeVal').textContent=this.value">
+                    <div class="text-right mc-text-dark text-sm mt-1">値: <span id="sizeVal" class="font-bold">2.5</span></div>
+                </div>
+                <div id="gifSpeedContainer" class="mb-4 opacity-50">
+                    <label class="block mb-2 font-bold mc-text-dark">再生速度 (Ticks/フレーム)</label>
+                    <input type="number" id="speedInput" class="mc-input" value="2" min="1" disabled>
+                    <p class="text-[10px] mt-1 text-gray-600">※1Tick=0.05秒</p>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block mb-2 font-bold mc-text-dark">表示座標</label>
+                <input type="text" id="basePosInput" class="mc-input" value="~ ~2 ~">
+            </div>
+            
+            <!-- 復活した2大アクションボタン -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                <button id="generateBtn" class="mc-btn w-full text-base" disabled>コマンドを生成する！</button>
+                <button id="downloadBtn" class="mc-btn w-full text-base" disabled style="background-color: #55aa55; color: white; text-shadow: 1px 1px 0 #113311;">データパックを保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- コマンド出力プレビューパネル -->
+    <div id="commandOutputPanel" class="mc-panel" style="display: none;">
+        <div class="flex justify-between items-center mb-2">
+            <h3 class="font-bold mc-text-dark">生成されたコマンドプレビュー</h3>
+            <button id="copyBtn" class="mc-btn py-1 px-3 text-xs">コピー</button>
+        </div>
+        <textarea id="commandTextArea" class="mc-textarea" readonly></textarea>
+        <p class="text-xs text-gray-700 mt-2" id="commandStats">パーティクル数: 0</p>
+    </div>
+
+    <div class="mc-panel">
+        <h2 class="text-xl font-bold mb-4 mc-text-dark border-b-2 border-gray-400 pb-2">3. 使い方</h2>
+        <div class="text-sm mc-text-dark leading-relaxed">
+            <ol class="list-decimal list-inside space-y-2">
+                <li>ファイルをアップロードしてホログラムの設定を行います。</li>
+                <li>手軽にコマンドブロックなどで試したい場合は「<strong>コマンドを生成する！</strong>」をクリック。</li>
+                <li>アニメーション（GIF）や大規模な表示は「<strong>データパックを保存</strong>」からZIPをダウンロードします。</li>
+                <li>DLしたZIPをワールドの <code class="bg-gray-300 px-1">datapacks</code> フォルダに入れ、マイクラ内で <code class="bg-gray-300 px-1">/reload</code> を実行。</li>
+                <li><strong>再生開始:</strong> <code class="bg-blue-200 px-1">/function hologram:start</code></li>
+                <li><strong>再生停止:</strong> <code class="bg-red-200 px-1">/function hologram:stop</code></li>
+            </ol>
+        </div>
+    </div>
+</div>
+
 <div id="toast" class="mc-toast">
     <div class="toast-icon">!</div>
     <div>
         <div class="text-yellow-400 text-sm mb-1" id="toastTitle">進捗達成！</div>
-        <div class="text-base" id="toastMessage">コピーしました</div>
+        <div class="text-base" id="toastMessage">ダウンロード完了</div>
     </div>
 </div>
 
+<canvas id="calcCanvas" class="hidden"></canvas>
+
 <script>
-    const imageInput = document.getElementById('imageInput');
+    const fileInput = document.getElementById('fileInput');
     const previewImage = document.getElementById('previewImage');
     const uploadPlaceholder = document.getElementById('uploadPlaceholder');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const generateBtn = document.getElementById('generateBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const progressBar = document.getElementById('progressBar');
     
     const widthInput = document.getElementById('widthInput');
     const densityInput = document.getElementById('densityInput');
     const sizeInput = document.getElementById('sizeInput');
+    const speedInput = document.getElementById('speedInput');
     const basePosInput = document.getElementById('basePosInput');
+    const gifInfo = document.getElementById('gifInfo');
+    const frameCountEl = document.getElementById('frameCount');
     
-    const generateBtn = document.getElementById('generateBtn');
-    const downloadDatapackBtn = document.getElementById('downloadDatapackBtn');
-    const outputArea = document.getElementById('outputArea');
+    const commandOutputPanel = document.getElementById('commandOutputPanel');
+    const commandTextArea = document.getElementById('commandTextArea');
+    const commandStats = document.getElementById('commandStats');
     const copyBtn = document.getElementById('copyBtn');
-    const statsText = document.getElementById('statsText');
-    const toast = document.getElementById('toast');
-    const toastTitle = document.getElementById('toastTitle');
-    const toastMessage = document.getElementById('toastMessage');
 
-    let loadedImage = null;
-    let generatedCommands = []; // 生成されたコマンドを保持
+    let currentFile = null;
+    let isGif = false;
+    let gifFrames = [];
 
-    // 画像アップロード処理
-    imageInput.addEventListener('change', function(e) {
+    fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const img = new Image();
-            img.onload = function() {
-                loadedImage = img;
-                previewImage.src = img.src;
-                previewImage.style.display = 'block';
-                uploadPlaceholder.style.display = 'none';
-                generateBtn.disabled = false;
-            }
-            img.src = event.target.result;
-        }
-        reader.readAsDataURL(file);
-    });
-
-    // コマンド生成処理
-    generateBtn.addEventListener('click', () => {
-        if (!loadedImage) return;
-
-        const targetWidthBlocks = parseFloat(widthInput.value);
-        const density = parseInt(densityInput.value);
-        const sizeMultiplier = parseFloat(sizeInput.value);
-        const basePos = basePosInput.value.trim().split(/\s+/); // ['~', '~2', '~'] などを想定
-
-        if (basePos.length !== 3) {
-            showToast("エラー", "基準座標はスペース区切りで3つの値 (X Y Z) を入力してください。");
-            return;
-        }
-
-        // キャンバスサイズを密度に合わせて計算
-        const canvasWidth = Math.floor(targetWidthBlocks * density);
-        const scaleFactor = canvasWidth / loadedImage.width;
-        const canvasHeight = Math.floor(loadedImage.height * scaleFactor);
-
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
-
-        // 画像をキャンバスに描画（リサイズ）
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(loadedImage, 0, 0, canvas.width, canvas.height);
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-
-        let commands = [];
-        let particleCount = 0;
-
-        // ピクセルごとの処理
-        for (let y = 0; y < canvasHeight; y++) {
-            for (let x = 0; x < canvasWidth; x++) {
-                const index = (y * canvasWidth + x) * 4;
-                const r = data[index];
-                const g = data[index + 1];
-                const b = data[index + 2];
-                const a = data[index + 3];
-
-                // 透明なピクセルは無視 (アルファ値が低いもの)
-                if (a > 10) {
-                    const rFloat = (r / 255).toFixed(3);
-                    const gFloat = (g / 255).toFixed(3);
-                    const bFloat = (b / 255).toFixed(3);
-
-                    // 中心を0とするためのオフセット
-                    const offsetX = (x - canvasWidth / 2) / density;
-                    const offsetY = (canvasHeight - y) / density; 
-                    const offsetZ = 0; 
-
-                    // ベース座標にオフセットを適用
-                    const finalX = applyOffset(basePos[0], offsetX);
-                    const finalY = applyOffset(basePos[1], offsetY);
-                    const finalZ = applyOffset(basePos[2], offsetZ);
-
-                    // Minecraft 1.21.2以降の新しいdustパーティクル構文 (コンポーネント形式)
-                    // sizeMultiplier を掛けてパーティクル自体の大きさを調整
-                    const pSize = (sizeMultiplier / density).toFixed(2);
-                    const cmd = `particle dust{color:[${rFloat},${gFloat},${bFloat}],scale:${pSize}} ${finalX} ${finalY} ${finalZ} 0 0 0 0 1`;
-                    commands.push(cmd);
-                    particleCount++;
-                }
-            }
-        }
-
-        generatedCommands = commands;
-
-        // 結果の表示
-        outputArea.textContent = commands.join('\n');
-        outputArea.style.display = 'block';
-        copyBtn.style.display = 'inline-block';
-        downloadDatapackBtn.style.display = 'inline-block';
+        currentFile = file;
+        isGif = file.type === 'image/gif';
         
-        statsText.innerHTML = `生成完了: <strong>${particleCount}</strong> 個のパーティクル<br>
-                               解像度: ${canvasWidth} x ${canvasHeight} ピクセル<br>
-                               <span style="color:#006600; font-weight:bold;">データパックの場合は /function hologram:draw を実行してください。</span>`;
-                               
-        showToast("生成完了", `${particleCount} 個のコマンドを作成しました`);
-    });
+        const url = URL.createObjectURL(file);
+        previewImage.src = url;
+        previewImage.style.display = 'block';
+        uploadPlaceholder.style.display = 'none';
+        generateBtn.disabled = false;
+        downloadBtn.disabled = false;
+        commandOutputPanel.style.display = 'none';
 
-    // データパックのダウンロード処理
-    downloadDatapackBtn.addEventListener('click', () => {
-        if (generatedCommands.length === 0) return;
-
-        const zip = new JSZip();
-
-        // pack.mcmetaの生成 (1.21.8用 = pack_format 61)
-        const mcmeta = {
-            "pack": {
-                "pack_format": 61,
-                "supported_formats": {"min_inclusive": 61, "max_inclusive": 70},
-                "description": "Hologram Particle Pack (1.21.8)"
-            }
-        };
-        zip.file("pack.mcmeta", JSON.stringify(mcmeta, null, 2));
-
-        // .mcfunctionファイルの生成
-        const functionContent = generatedCommands.join('\n');
-        // namespace: hologram
-        zip.folder("data").folder("hologram").folder("function").file("draw.mcfunction", functionContent);
-
-        // ZIPを生成してダウンロード
-        zip.generateAsync({ type: "blob" }).then(function(content) {
-            const url = URL.createObjectURL(content);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = "hologram_datapack_1_21_8.zip";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+        if (isGif) {
+            speedInput.disabled = false;
+            document.getElementById('gifSpeedContainer').style.opacity = "1";
             
-            showToast("ダウンロード完了", "ZIPファイルを保存しました！");
-        });
-    });
+            try {
+                const arrayBuffer = await file.arrayBuffer();
 
-    // 座標オフセット計算用ヘルパー関数
-    function applyOffset(baseStr, offsetVal) {
-        if (offsetVal === 0) return baseStr;
-        
-        // ~ または ^ を含む相対座標の場合
-        if (baseStr.startsWith('~') || baseStr.startsWith('^')) {
-            const prefix = baseStr.charAt(0);
-            let val = parseFloat(baseStr.substring(1)) || 0;
-            const result = val + offsetVal;
-            return Math.abs(result) < 0.001 ? prefix : `${prefix}${result.toFixed(3)}`;
-        } 
-        // 絶対座標の場合
-        else {
-            let val = parseFloat(baseStr) || 0;
-            return (val + offsetVal).toFixed(3);
+                // 1. 最新の ImageDecoder API (WebCodecs) を最優先で使用 (高速かつ正確)
+                if ('ImageDecoder' in window) {
+                    // Fileオブジェクトから直ではなく、変換した ArrayBuffer を ImageDecoder に渡す
+                    const decoder = new window.ImageDecoder({ data: arrayBuffer, type: 'image/gif' });
+                    await decoder.tracks.ready;
+                    const frameCount = decoder.tracks.selectedTrack.frameCount;
+                    
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                    
+                    gifFrames = [];
+                    for (let i = 0; i < frameCount; i++) {
+                        const result = await decoder.decode({ frameIndex: i });
+                        const videoFrame = result.image;
+                        
+                        if (i === 0) {
+                            canvas.width = videoFrame.displayWidth;
+                            canvas.height = videoFrame.displayHeight;
+                        }
+                        
+                        // ImageDecoderは自動でフレーム重ね合わせ処理を行います
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(videoFrame, 0, 0);
+                        
+                        gifFrames.push({
+                            width: canvas.width,
+                            height: canvas.height,
+                            data: ctx.getImageData(0, 0, canvas.width, canvas.height).data
+                        });
+                        videoFrame.close();
+                    }
+                    frameCountEl.textContent = gifFrames.length;
+                    gifInfo.classList.remove('hidden');
+                } else {
+                    // 2. ブラウザ非対応時の強力な gifuct-js フォールバック
+                    const parsedGif = window.gifuct.parseGIF(arrayBuffer);
+                    const rawFrames = window.gifuct.decompressFrames(parsedGif, true);
+                    
+                    gifFrames = [];
+                    const canvas = document.createElement('canvas');
+                    canvas.width = parsedGif.lsd.width;
+                    canvas.height = parsedGif.lsd.height;
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                    
+                    for (let i = 0; i < rawFrames.length; i++) {
+                        const frame = rawFrames[i];
+                        
+                        const patchData = new ImageData(
+                            new Uint8ClampedArray(frame.patch),
+                            frame.dims.width,
+                            frame.dims.height
+                        );
+                        
+                        if (frame.disposalType === 2) {
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        }
+                        
+                        ctx.putImageData(patchData, frame.dims.left, frame.dims.top);
+                        
+                        gifFrames.push({
+                            width: canvas.width,
+                            height: canvas.height,
+                            data: ctx.getImageData(0, 0, canvas.width, canvas.height).data
+                        });
+                    }
+                    
+                    frameCountEl.textContent = gifFrames.length;
+                    gifInfo.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("GIF処理エラー:", err);
+                alert("GIFの解析に失敗しました。静止画として処理を継続します。");
+                isGif = false;
+                gifInfo.classList.add('hidden');
+            }
+        } else {
+            speedInput.disabled = true;
+            document.getElementById('gifSpeedContainer').style.opacity = "0.5";
+            gifInfo.classList.add('hidden');
+            gifFrames = [];
         }
-    }
-
-    // コピー機能
-    copyBtn.addEventListener('click', () => {
-        outputArea.select();
-        document.execCommand('copy');
-        
-        showToast("進捗達成！", "コマンドをコピーしました");
     });
 
-    // マイクラのアチーブメント風トースト通知
-    let toastTimeout;
-    function showToast(title, message) {
-        toastTitle.textContent = title;
-        toastMessage.textContent = message;
+    // 「コマンドを生成する！」処理 (テキストエリア表示)
+    generateBtn.addEventListener('click', async () => {
+        if (!currentFile) return;
         
-        toast.classList.add('show');
+        try {
+            let commands = [];
+            const targetWidth = parseFloat(widthInput.value);
+            const density = parseInt(densityInput.value);
+            const pScale = parseFloat(sizeInput.value);
+            const pos = basePosInput.value.split(' ');
+
+            if (isGif && gifFrames.length > 0) {
+                // GIFの場合は最初のフレーム(1f)を生成
+                commands = await processFrame(gifFrames[0], targetWidth, density, pScale, pos);
+                showToast("生成完了", "GIFの最初のフレーム(1f)を生成しました！");
+            } else {
+                // 静止画の場合
+                const img = await loadImage(URL.createObjectURL(currentFile));
+                commands = await processImage(img, targetWidth, density, pScale, pos);
+                showToast("生成完了", "ホログラム用コマンドを生成しました！");
+            }
+
+            commandOutputPanel.style.display = 'block';
+            commandTextArea.value = commands.join('\n');
+            commandTextArea.style.display = 'block';
+            commandStats.innerHTML = `パーティクル総数: <strong>${commands.length}</strong> 個 (1.21.2+ 形式)`;
+            
+        } catch (err) {
+            console.error(err);
+            alert("エラーが発生しました: " + err.message);
+        }
+    });
+
+    // 「データパックを保存」ダウンロード処理
+    downloadBtn.addEventListener('click', async () => {
+        loadingOverlay.style.display = 'flex';
+        progressBar.style.width = '0%';
         
-        clearTimeout(toastTimeout);
-        toastTimeout = setTimeout(() => {
-            toast.classList.remove('show');
-        }, 4000); // 4秒後に消える
+        try {
+            const zip = new JSZip();
+            const appId = "hologram";
+            const targetWidth = parseFloat(widthInput.value);
+            const density = parseInt(densityInput.value);
+            const pScale = parseFloat(sizeInput.value);
+            const pos = basePosInput.value.split(' ');
+            const ticksPerFrame = parseInt(speedInput.value) || 2;
+
+            // pack.mcmeta
+            zip.file("pack.mcmeta", JSON.stringify({
+                pack: { pack_format: 61, description: "Hologram Generator Data Pack" }
+            }));
+
+            const funcFolder = zip.folder("data").folder(appId).folder("function");
+
+            if (isGif && gifFrames.length > 0) {
+                // 1. 各フレームファイルを「1f.mcfunction」「2f.mcfunction」...として出力
+                const frameFolder = funcFolder.folder("frames");
+                for (let i = 0; i < gifFrames.length; i++) {
+                    progressBar.style.width = `${(i / gifFrames.length) * 100}%`;
+                    const commands = await processFrame(gifFrames[i], targetWidth, density, pScale, pos);
+                    
+                    // 1f, 2f, 3f という命名規則に変更
+                    frameFolder.file(`${i + 1}f.mcfunction`, commands.join('\n'));
+                }
+
+                // 2. 全フレームのスケジュールを start.mcfunction にまとめる
+                let startCmdLines = [];
+                
+                // 1枚目のフレームは即時実行
+                startCmdLines.push(`function ${appId}:frames/1f`);
+                
+                // 2枚目以降は指定のTick間隔で遅延スケジュール
+                for (let i = 1; i < gifFrames.length; i++) {
+                    const scheduledTick = i * ticksPerFrame;
+                    startCmdLines.push(`schedule function ${appId}:frames/${i + 1}f ${scheduledTick}t`);
+                }
+
+                // ループ処理：全フレームが終了した直後に、再び start.mcfunction 自体を呼び出す
+                const totalLoopTicks = gifFrames.length * ticksPerFrame;
+                startCmdLines.push(`schedule function ${appId}:start ${totalLoopTicks}t`);
+                
+                funcFolder.file("start.mcfunction", startCmdLines.join('\n'));
+
+                // 3. 停止用の stop.mcfunction (すべてのスケジュール予定を消去)
+                let stopCmdLines = [];
+                stopCmdLines.push(`schedule clear ${appId}:start`);
+                for (let i = 0; i < gifFrames.length; i++) {
+                    stopCmdLines.push(`schedule clear ${appId}:frames/${i + 1}f`);
+                }
+                funcFolder.file("stop.mcfunction", stopCmdLines.join('\n'));
+
+            } else {
+                // 静止画処理の場合
+                const img = await loadImage(URL.createObjectURL(currentFile));
+                const commands = await processImage(img, targetWidth, density, pScale, pos);
+                funcFolder.file("draw.mcfunction", commands.join('\n'));
+                funcFolder.file("start.mcfunction", `function ${appId}:draw`);
+                funcFolder.file("stop.mcfunction", `fill ~-5 ~-5 ~-5 ~5 ~5 ~5 air replace light`); // 簡易停止
+            }
+
+            const content = await zip.generateAsync({type: "blob"});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(content);
+            a.download = isGif ? "hologram_gif_datapack.zip" : "hologram_image_datapack.zip";
+            a.click();
+            showToast("成功", "データパックを保存しました！");
+        } catch (err) {
+            console.error(err);
+            alert("エラーが発生しました: " + err.message);
+        } finally {
+            loadingOverlay.style.display = 'none';
+        }
+    });
+
+    async function processFrame(frameData, targetWidth, density, pScale, pos) {
+        const canvas = document.getElementById('calcCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        canvas.width = frameData.width;
+        canvas.height = frameData.height;
+        
+        const imageData = ctx.createImageData(frameData.width, frameData.height);
+        imageData.data.set(frameData.data);
+        ctx.putImageData(imageData, 0, 0);
+
+        const scaledW = targetWidth * density;
+        const scale = scaledW / frameData.width;
+        const scaledH = frameData.height * scale;
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = scaledW;
+        tempCanvas.height = scaledH;
+        const tCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+        tCtx.drawImage(canvas, 0, 0, scaledW, scaledH);
+        
+        return extractCommands(tCtx.getImageData(0,0,scaledW,scaledH), density, pScale, pos);
     }
+
+    async function processImage(img, targetWidth, density, pScale, pos) {
+        const scaledW = targetWidth * density;
+        const scale = scaledW / img.width;
+        const scaledH = img.height * scale;
+        const canvas = document.getElementById('calcCanvas');
+        canvas.width = scaledW;
+        canvas.height = scaledH;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, scaledW, scaledH);
+        return extractCommands(ctx.getImageData(0,0,scaledW,scaledH), density, pScale, pos);
+    }
+
+    function extractCommands(imgData, density, pScale, basePos) {
+        const cmds = [];
+        const {data, width, height} = imgData;
+        const scaleAttr = (pScale / density).toFixed(3);
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const i = (y * width + x) * 4;
+                if (data[i+3] < 128) continue;
+                
+                const r = (data[i]/255).toFixed(3);
+                const g = (data[i+1]/255).toFixed(3);
+                const b = (data[i+2]/255).toFixed(3);
+                
+                const dx = (x - width/2) / density;
+                const dy = (height - y) / density;
+                
+                const fx = applyOffset(basePos[0], dx);
+                const fy = applyOffset(basePos[1], dy);
+                const fz = applyOffset(basePos[2], 0);
+                
+                cmds.push(`particle dust{color:[${r},${g},${b}],scale:${scaleAttr}} ${fx} ${fy} ${fz} 0 0 0 0 1`);
+            }
+        }
+        return cmds;
+    }
+
+    function applyOffset(base, off) {
+        if (off === 0) return base;
+        if (base.startsWith('~') || base.startsWith('^')) {
+            const v = parseFloat(base.slice(1)) || 0;
+            const res = v + off;
+            return base[0] + (Math.abs(res) < 0.001 ? "" : res.toFixed(3));
+        }
+        return (parseFloat(base) + off).toFixed(3);
+    }
+
+    function loadImage(url) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.src = url;
+        });
+    }
+
+    function showToast(title, msg) {
+        document.getElementById('toastTitle').textContent = title;
+        document.getElementById('toastMessage').textContent = msg;
+        const toastEl = document.getElementById('toast');
+        toastEl.classList.add('show');
+        setTimeout(() => toastEl.classList.remove('show'), 4000);
+    }
+
+    // コピーボタン処理
+    copyBtn.addEventListener('click', () => {
+        commandTextArea.select();
+        document.execCommand('copy');
+        showToast("コピー成功", "コマンドをクリップボードにコピーしました！");
+    });
 </script>
 </body>
 </html>
